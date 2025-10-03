@@ -127,7 +127,7 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
                                     board_logic.reveal_cell_recursive(game_board, row_idx, col_idx)
                                     if board_logic.check_win_condition(game_board):
                                         game_is_won = True
-                                        scoreboard.save_player_score(current_level_name, current_elapsed_time)
+                                        # Logika zapisu przeniesiona niżej
 
                                 if cheat_active and not (game_is_won or game_is_lost):
                                     board_logic.analyze_board_probabilities(game_board)
@@ -177,13 +177,39 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
         if game_is_won or game_is_lost:
             pygame.time.wait(1000)
 
-            player_choice = game_ui.display_end_game_menu(
-                active_game_screen,
-                game_is_won,
-                current_level_name,
-                current_elapsed_time
-            )
+            # --- ZMIANA: Nowa logika obsługi wygranej ---
+            if game_is_won and current_level_name in scoreboard.RANKED_LEVELS:
+                # 1. Prosimy gracza o imię
+                save_action, player_name = game_ui.display_name_input_menu(
+                    active_game_screen,
+                    current_elapsed_time
+                )
 
+                # 2. Jeśli gracz zdecydował się zapisać, zapisujemy
+                if save_action == "save":
+                    scoreboard.save_player_score(current_level_name, current_elapsed_time, player_name)
+                    # Po zapisie przechodzimy do normalnego menu końca gry
+                    player_choice = game_ui.display_end_game_menu(
+                        active_game_screen,
+                        game_is_won,
+                        current_level_name,
+                        current_elapsed_time
+                    )
+                else:
+                    # Jeśli "skip" (nie zapisuj), przechodzimy od razu do menu
+                    player_choice = "menu"
+
+            else:
+                # Standardowe menu końca gry dla przegranej lub trybu niestandardowego
+                player_choice = game_ui.display_end_game_menu(
+                    active_game_screen,
+                    game_is_won,
+                    current_level_name,
+                    current_elapsed_time
+                )
+            # ----------------------------------------------
+
+            # --- ZMIANA: Uproszczona obsługa wyboru gracza ---
             if player_choice == "restart":
                 reset_game_state()
             elif player_choice == "menu":
@@ -191,6 +217,7 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
             elif player_choice == "exit":
                 pygame.quit()
                 sys.exit()
+            # ------------------------------------------------
 
     pygame.display.set_mode(orig_screen_dims)
     pygame.display.set_caption("Saper – Wersja UI")

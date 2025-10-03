@@ -10,14 +10,13 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
     submenu_theme = pygame_menu.themes.THEME_DARK.copy()
     submenu = pygame_menu.Menu(
         "Tryb Niestandardowy",
-        # ZMIANA: Używamy pełnych wymiarów powierzchni rodzica
         parent_surface.get_width(),
         parent_surface.get_height(),
         theme=submenu_theme
     )
 
     submenu.add.label("Ustawienia Niestandardowe", font_size=40, margin=(0, 30))
-# ... (reszta funkcji create_custom_game_menu bez zmian) ...
+
     # Rozmiar planszy (Range Slider)
     submenu.add.range_slider(
         "Rozmiar planszy",
@@ -68,8 +67,20 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
     )
     menu.add.button("Tryb Niestandardowy", custom_sub_menu, margin=(0, 40))
 
-    scoreboard_sub_menu = create_scoreboard_display_menu(surface)
-    menu.add.button("Tablica wyników", scoreboard_sub_menu)
+    # ZAMIENIAMY istniejącą create_and_open_scoreboard_dynamically na to:
+    def create_and_open_scoreboard_dynamically():
+        # Tworzymy menu rankingów zawsze na świeżo i uruchamiamy jego pętlę.
+        new_scoreboard_menu = create_scoreboard_display_menu(surface)
+        try:
+            new_scoreboard_menu.mainloop(surface)
+        except Exception as e:
+            print("Błąd przy otwieraniu tablicy wyników:", e)
+        # Nie zwracamy Menu — callback kończy się po zamknięciu podmenu.
+        return None
+
+    static_scoreboard = create_scoreboard_display_menu(surface)
+    menu.add.button("Tablica wyników", static_scoreboard)
+    # -----------------------------------------------------------------------------
 
     menu.add.button("Wyjście", pygame_menu.events.EXIT)
     return menu
@@ -79,29 +90,29 @@ def create_scoreboard_display_menu(parent_surface):
     submenu_theme = pygame_menu.themes.THEME_DARK.copy()
     submenu = pygame_menu.Menu(
         "Tablica wyników",
-        # ZMIANA: Używamy pełnych wymiarów powierzchni rodzica
         parent_surface.get_width(),
         parent_surface.get_height(),
         theme=submenu_theme
     )
+    # Ładowanie wyników następuje ZA KAŻDYM RAZEM, gdy menu jest tworzone (poprawne)
     high_scores_data = scoreboard.load_high_scores()
 
+    # Wyświetlamy tylko rankingowe poziomy
     levels_in_order = list(config.DIFFICULTIES.keys())
-    if "Niestandardowy" in high_scores_data or not any(lvl in high_scores_data for lvl in config.DIFFICULTIES.keys()):
-        # Dodaj "Niestandardowy" jeśli ma wyniki lub jeśli nie ma żadnych innych wyników, aby pokazać info
-        if "Niestandardowy" not in levels_in_order:
-            levels_in_order.append("Niestandardowy")
 
     found_any_scores = False
     for level_key in levels_in_order:
         scores_list = high_scores_data.get(level_key, [])
-        is_defined_level = level_key in config.DIFFICULTIES.keys() or level_key == "Niestandardowy"
+        is_defined_level = level_key in config.DIFFICULTIES.keys()
 
         if scores_list:
             found_any_scores = True
             submenu.add.label(f"{level_key}:", font_size=36, margin=(0, 10))
-            for i, score_time in enumerate(scores_list):
-                submenu.add.label(f"{i + 1}. {score_time:.2f} sek", font_size=28)
+            # Wyświetlamy czas ORAZ imię gracza
+            for i, score_entry in enumerate(scores_list):
+                time = score_entry.get("time", 0.0)
+                name = score_entry.get("name", "Brak Im.")
+                submenu.add.label(f"{i + 1}. {time:.2f} sek ({name})", font_size=28)
             submenu.add.vertical_margin(15)
         elif is_defined_level:  # Pokaż "Brak wyników" dla zdefiniowanych poziomów
             submenu.add.label(f"{level_key}: Brak wyników", font_size=30, margin=(0, 10))
@@ -114,8 +125,52 @@ def create_scoreboard_display_menu(parent_surface):
     return submenu
 
 
+def display_name_input_menu(game_surface, final_time):
+    """Wyświetla menu do wprowadzenia imienia gracza i opcje zapisu/rezygnacji."""
+    title_text = "Nowy rekord!"
+    menu_theme = pygame_menu.themes.THEME_DARK.copy()
+    menu_theme.title_font_color = config.GREEN
+    menu_theme.widget_font_color = config.WHITE
+
+    menu_width, menu_height = game_surface.get_size()
+    input_menu = pygame_menu.Menu(title_text, menu_width, menu_height, theme=menu_theme)
+
+    # Przechowuje wynik akcji: ["save", "Imię Gracza"] lub ["skip", None]
+    action_result = ["skip", None]
+
+    def set_player_action_and_disable(action, name=None):
+        nonlocal action_result
+        action_result = [action, name]
+        input_menu.disable()
+
+    input_menu.add.label(f"Czas: {final_time:.2f} sek", font_size=30)
+    input_menu.add.vertical_margin(20)
+
+    # Widget do wprowadzania imienia
+    name_input = input_menu.add.text_input(
+        'Imię: ',
+        maxchar=10,
+        input_underline='_',
+        font_size=30,
+        default='Anon'
+    )
+
+    input_menu.add.vertical_margin(30)
+
+    # Przycisk "Zapisz" - pobiera wprowadzone imię
+    input_menu.add.button("Zapisz wynik",
+                          lambda: set_player_action_and_disable("save", name_input.get_value()))
+
+    # Przycisk "Nie zapisuj" - wychodzi do menu
+    input_menu.add.button("Nie zapisuj (Wróć do menu)",
+                          lambda: set_player_action_and_disable("skip"))
+
+    input_menu.mainloop(game_surface)
+    return action_result
+
+
 def display_end_game_menu(game_surface, game_won, level_played, final_time):
-    # ... (kod funkcji bez zmian) ...
+    # ... (cały kod display_end_game_menu bez zmian) ...
     title_text = "Wygrana!" if game_won else "Przegrana!"
     menu_theme = pygame_menu.themes.THEME_DARK.copy()
     menu_theme.title_font_color = config.GREEN if game_won else config.RED

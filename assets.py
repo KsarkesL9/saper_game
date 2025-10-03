@@ -12,8 +12,7 @@ FONT = None
 BIG_FONT = None # Pozostawiamy dla kompatybilności, ale będzie None
 try:
     FONT = pygame.font.SysFont(config.FONT_NAME, config.FONT_SIZE_NORMAL)
-    # USUNIĘTO: BIG_FONT = pygame.font.SysFont(config.FONT_NAME, config.FONT_SIZE_BIG)
-    BIG_FONT = FONT # Przypisanie tego samego, aby uniknąć AttributeError w game_manager.py
+    BIG_FONT = FONT # Przypisanie tej samej czcionki, aby uniknąć AttributeError w game_manager.py
 except pygame.error as e:
     print(f"Warning: Could not load system font '{config.FONT_NAME}'. Using default. Error: {e}")
     # Fallback to Pygame's default font if system font fails
