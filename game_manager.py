@@ -21,10 +21,48 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
         num_mines_on_board = cust_mines
         current_level_name = "Niestandardowy"
 
-    game_scr_width = board_dimension * config.CELL_SIZE + 2 * config.MARGIN
-    game_scr_height = board_dimension * config.CELL_SIZE + 2 * config.MARGIN
+    # --- ZMIANA: Używamy stałego rozmiaru okna menu dla ekranu gry ---
+    game_scr_width = config.SCREEN_WIDTH
+    game_scr_height = config.SCREEN_HEIGHT
     active_game_screen = pygame.display.set_mode((game_scr_width, game_scr_height))
     pygame.display.set_caption(f"Saper – {current_level_name}")
+    # -----------------------------------------------------------------
+
+    # --- ZMIANA: Dynamiczne obliczanie rozmiaru kafelka i marginesów ---
+    # 1. Oblicz maksymalny dostępny obszar dla planszy
+    # Bierzemy mniejszy z wymiarów okna, aby plansza była kwadratowa i mieściła się w 80%
+    available_size = min(game_scr_width, game_scr_height) * config.BOARD_AREA_PERCENTAGE
+
+    # 2. Oblicz nowy CELL_SIZE
+    # Dzielimy dostępny rozmiar przez wymiar planszy, aby uzyskać maksymalny rozmiar kafelka
+    new_cell_size = int(available_size // board_dimension)
+
+    # 3. Oblicz całkowity rozmiar planszy w pikselach
+    board_pixel_width = board_dimension * new_cell_size
+    board_pixel_height = board_dimension * new_cell_size
+
+    # 4. Oblicz dynamiczne offsety (marginesy) dla wyśrodkowania planszy
+    # Minimalny margines pionowy dla timera. Timer ma być na górze okna (offset_y = MIN_MARGIN)
+    # Plansza powinna zaczynać się poniżej timera.
+
+    # Timer zajmie ~FONT_SIZE_NORMAL wysokości. Wyznaczamy górną granicę planszy
+    # na podstawie pozostałego obszaru po umieszczeniu timera.
+
+    timer_height = assets.FONT.get_height()
+
+    # Minimalny margines od góry, poniżej timera
+    min_top_margin_for_board = timer_height + config.MIN_MARGIN * 2
+
+    # Offset poziomy (wyśrodkowanie)
+    offset_x = (game_scr_width - board_pixel_width) // 2
+    offset_x = max(config.MIN_MARGIN, offset_x)
+
+    # Offset pionowy: plansza powinna być wyśrodkowana w pozostałym miejscu, ale nie za nisko
+    # W praktyce planszę po prostu umieszczamy poniżej minimalnego marginesu górnego
+    offset_y = (game_scr_height - board_pixel_height) // 2
+    # Zapewniamy, że plansza zaczyna się co najmniej za timerem + margines
+    offset_y = max(min_top_margin_for_board, offset_y)
+    # ---------------------------------------------------------------------
 
     game_clock = pygame.time.Clock()
 
@@ -56,8 +94,10 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
             if not game_is_lost and not game_is_won:
                 if evt.type == pygame.MOUSEBUTTONDOWN:
                     m_x, m_y = evt.pos
-                    col_idx = (m_x - config.MARGIN) // config.CELL_SIZE
-                    row_idx = (m_y - config.MARGIN) // config.CELL_SIZE
+                    # --- ZMIANA: Używamy nowego new_cell_size do obliczenia indeksu komórki ---
+                    col_idx = (m_x - offset_x) // new_cell_size
+                    row_idx = (m_y - offset_y) // new_cell_size
+                    # -----------------------------------------------------------
 
                     if 0 <= col_idx < board_dimension and 0 <= row_idx < board_dimension:
 
@@ -110,18 +150,24 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
                                     for c_cell_item in r_arr: c_cell_item.probability = None
 
         active_game_screen.fill(config.BLACK)
-        drawing.draw_game_board(active_game_screen, game_board, cheat_active)
+        # --- ZMIANA: Przekazujemy offsety ORAZ new_cell_size do funkcji rysującej ---
+        drawing.draw_game_board(active_game_screen, game_board, cheat_active, offset_x, offset_y, new_cell_size)
 
         if not (game_is_lost or game_is_won):
+            # --- ZMIANA: Uaktualniamy pozycję timera (lewy górny róg) ---
             timer_surf = assets.FONT.render(f"Czas: {int(current_elapsed_time)}s", True, config.WHITE)
-            active_game_screen.blit(timer_surf, (config.MARGIN, 10))
+            # Stała pozycja w lewym górnym rogu z minimalnym marginesem
+            active_game_screen.blit(timer_surf, (config.MIN_MARGIN, config.MIN_MARGIN))
+            # -----------------------------------------------------------
 
         if game_is_won:
             status_text_surf = assets.BIG_FONT.render("WYGRANA!", True, config.GREEN)
+            status_text_surf.set_colorkey(config.BLACK)  # Zapewniamy przezroczystość tła dla statusu
             active_game_screen.blit(status_text_surf,
                                     status_text_surf.get_rect(center=active_game_screen.get_rect().center))
         elif game_is_lost:
             status_text_surf = assets.BIG_FONT.render("PRZEGRANA!", True, config.RED)
+            status_text_surf.set_colorkey(config.BLACK)  # Zapewniamy przezroczystość tła dla statusu
             active_game_screen.blit(status_text_surf,
                                     status_text_surf.get_rect(center=active_game_screen.get_rect().center))
 

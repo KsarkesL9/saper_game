@@ -5,6 +5,48 @@ import config
 import scoreboard
 
 
+def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
+    """Tworzy podmenu dla trybu niestandardowego, zawierające suwaki i przycisk startu."""
+    submenu_theme = pygame_menu.themes.THEME_DARK.copy()
+    submenu = pygame_menu.Menu(
+        "Tryb Niestandardowy",
+        # ZMIANA: Używamy pełnych wymiarów powierzchni rodzica
+        parent_surface.get_width(),
+        parent_surface.get_height(),
+        theme=submenu_theme
+    )
+
+    submenu.add.label("Ustawienia Niestandardowe", font_size=40, margin=(0, 30))
+# ... (reszta funkcji create_custom_game_menu bez zmian) ...
+    # Rozmiar planszy (Range Slider)
+    submenu.add.range_slider(
+        "Rozmiar planszy",
+        default=get_custom_setting_fn("size"),
+        range_values=(config.MIN_BOARD_SIZE, config.MAX_BOARD_SIZE),
+        increment=1,
+        value_format=lambda _: str(int(get_custom_setting_fn("size"))),
+        onchange=lambda val: update_custom_setting_fn("size", val)
+    )
+
+    # Liczba min (Range Slider)
+    max_slider_mines_limit = config.MAX_BOARD_SIZE * config.MAX_BOARD_SIZE - 1
+    submenu.add.range_slider(
+        "Liczba min",
+        default=get_custom_setting_fn("mines"),
+        range_values=(config.MIN_MINES_CUSTOM, max_slider_mines_limit),
+        increment=1,
+        value_format=lambda _: str(int(get_custom_setting_fn("mines"))),
+        onchange=lambda val: update_custom_setting_fn("mines", val)
+    )
+
+    # Przycisk startu
+    submenu.add.button("Rozpocznij", lambda: start_game_fn("Niestandardowy"), margin=(0, 40))
+
+    # Przycisk powrotu
+    submenu.add.button("Wróć", pygame_menu.events.BACK)
+    return submenu
+
+
 def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
     menu_theme = pygame_menu.themes.THEME_DARK.copy()
     menu = pygame_menu.Menu(
@@ -18,31 +60,13 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
     for level_name_key in config.DIFFICULTIES:
         menu.add.button(level_name_key, lambda lvl=level_name_key: start_game_fn(lvl))
 
-    menu.add.label("Tryb Niestandardowy", font_size=34, margin=(0, 15))
-
-    menu.add.range_slider(
-        "Rozmiar planszy",
-        default=get_custom_setting_fn("size"),
-        range_values=(config.MIN_BOARD_SIZE, config.MAX_BOARD_SIZE),  # Użyj stałych
-        increment=1,
-        # value_format=lambda x: str(int(x)), # Poprzednio
-        value_format=lambda _: str(int(get_custom_setting_fn("size"))),  # Pokazuj aktualną wartość
-        onchange=lambda val: update_custom_setting_fn("size", val)
+    custom_sub_menu = create_custom_game_menu(
+        surface,
+        start_game_fn,
+        get_custom_setting_fn,
+        update_custom_setting_fn
     )
-
-    # Maksymalna liczba min dla suwaka (teoretyczna, walidacja jest ważniejsza)
-    max_slider_mines_limit = config.MAX_BOARD_SIZE * config.MAX_BOARD_SIZE - 1
-    menu.add.range_slider(
-        "Liczba min",
-        default=get_custom_setting_fn("mines"),
-        range_values=(config.MIN_MINES_CUSTOM, max_slider_mines_limit),  # Użyj stałych
-        increment=1,
-        # value_format=lambda x: str(int(x)), # Poprzednio
-        value_format=lambda _: str(int(get_custom_setting_fn("mines"))),  # Pokazuj aktualną wartość
-        onchange=lambda val: update_custom_setting_fn("mines", val)
-    )
-
-    menu.add.button("Start niestandardowy", lambda: start_game_fn("Niestandardowy"))
+    menu.add.button("Tryb Niestandardowy", custom_sub_menu, margin=(0, 40))
 
     scoreboard_sub_menu = create_scoreboard_display_menu(surface)
     menu.add.button("Tablica wyników", scoreboard_sub_menu)
@@ -52,12 +76,12 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
 
 
 def create_scoreboard_display_menu(parent_surface):
-    # ... (bez zmian) ...
     submenu_theme = pygame_menu.themes.THEME_DARK.copy()
     submenu = pygame_menu.Menu(
         "Tablica wyników",
-        parent_surface.get_width() * 0.8,
-        parent_surface.get_height() * 0.8,
+        # ZMIANA: Używamy pełnych wymiarów powierzchni rodzica
+        parent_surface.get_width(),
+        parent_surface.get_height(),
         theme=submenu_theme
     )
     high_scores_data = scoreboard.load_high_scores()
@@ -65,7 +89,7 @@ def create_scoreboard_display_menu(parent_surface):
     levels_in_order = list(config.DIFFICULTIES.keys())
     if "Niestandardowy" in high_scores_data or not any(lvl in high_scores_data for lvl in config.DIFFICULTIES.keys()):
         # Dodaj "Niestandardowy" jeśli ma wyniki lub jeśli nie ma żadnych innych wyników, aby pokazać info
-        if "Niestandardowy" not in levels_in_order:  # Unikaj duplikatów jeśli już jest
+        if "Niestandardowy" not in levels_in_order:
             levels_in_order.append("Niestandardowy")
 
     found_any_scores = False
@@ -91,7 +115,7 @@ def create_scoreboard_display_menu(parent_surface):
 
 
 def display_end_game_menu(game_surface, game_won, level_played, final_time):
-    # ... (bez zmian) ...
+    # ... (kod funkcji bez zmian) ...
     title_text = "Wygrana!" if game_won else "Przegrana!"
     menu_theme = pygame_menu.themes.THEME_DARK.copy()
     menu_theme.title_font_color = config.GREEN if game_won else config.RED
