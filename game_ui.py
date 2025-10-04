@@ -1,4 +1,3 @@
-# game_ui.py
 import pygame
 import pygame_menu
 import pygame_menu.locals
@@ -7,7 +6,6 @@ import scoreboard
 
 
 def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
-    """Tworzy podmenu z suwakami i ostateczną, poprawną logiką walidacji."""
     submenu_theme = pygame_menu.themes.THEME_DARK.copy()
     submenu_theme.background_color = config.DARK_NAVY
     submenu_theme.widget_font_color = config.WHITE
@@ -25,7 +23,6 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
     submenu.add.vertical_margin(30)
 
     def validate_settings_and_update_ui():
-        """Sprawdza, czy ustawienia są poprawne i aktualizuje UI."""
         size = get_custom_setting_fn("size")
         mines = get_custom_setting_fn("mines")
         max_mines = (size * size) - 1
@@ -84,23 +81,20 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
     menu_theme.selection_color = config.CYAN
     menu_theme.title_font_color = config.ELECTRIC_BLUE
 
-    # Tworzymy menu bez domyślnego tytułu, aby zrobić własny
     menu = pygame_menu.Menu(
-        '',  # Pusty tytuł
+        '',
         surface.get_width(),
         surface.get_height(),
         theme=menu_theme
     )
 
-    # --- NOWY, STATYCZNY TYTUŁ ---
     menu.add.label(
         "MineSat",
-        font_name=config.FONT_NAME,  # Użycie bezpiecznej czcionki z konfiguracji
+        font_name=config.FONT_NAME,
         font_size=120,
         font_color=config.ELECTRIC_BLUE
     )
-    menu.add.vertical_margin(50)  # Odstęp pod tytułem
-    # --- KONIEC NOWEGO TYTUŁU ---
+    menu.add.vertical_margin(50)
 
     menu.add.label("Wybierz poziom", font_size=40, margin=(0, 20))
     for level_name_key in config.DIFFICULTIES:

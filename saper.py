@@ -1,4 +1,3 @@
-# saper.py
 import pygame
 import sys
 import config
@@ -13,16 +12,11 @@ _current_custom_settings = {
 
 
 def update_global_custom_setting(setting_key, new_value_str_or_int):
-    """
-    Uproszczona funkcja - tylko aktualizuje wartość w słowniku.
-    Cała logika walidacji jest teraz w UI.
-    """
     global _current_custom_settings
     try:
         value = int(new_value_str_or_int)
         _current_custom_settings[setting_key] = value
     except (ValueError, TypeError):
-        # Ignoruj błędne wartości, które nie są liczbami
         pass
 
 
@@ -33,7 +27,6 @@ def get_global_custom_setting(setting_key):
 def initiate_game_level(selected_level_name):
     original_menu_screen_dimensions = (config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
 
-    # Walidacja jest teraz w UI, więc przekazujemy wartości bezpośrednio
     size = _current_custom_settings["size"]
     mines = _current_custom_settings["mines"]
 

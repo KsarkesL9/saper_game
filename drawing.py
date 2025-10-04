@@ -1,10 +1,8 @@
-# drawing.py
 import pygame
 import config
 import math
 
 
-# Nowa, ulepszona funkcja rysowania planszy
 def draw_game_board(screen, board, cheat_on, offset_x, offset_y, cell_size):
     size = len(board)
     font_size_for_numbers = max(12, int(cell_size * 0.6))
@@ -24,13 +22,11 @@ def draw_game_board(screen, board, cheat_on, offset_x, offset_y, cell_size):
                 cell_size
             )
 
-            # Dodajemy cień pod komórką dla efektu głębi
             shadow_rect = rect.copy()
             shadow_rect.x += 3
             shadow_rect.y += 3
             pygame.draw.rect(screen, config.BLACK, shadow_rect, border_radius=8)
 
-            # Ustalanie koloru komórki
             if cell_obj.revealed:
                 cell_display_color = config.MID_NAVY
             else:
@@ -48,7 +44,6 @@ def draw_game_board(screen, board, cheat_on, offset_x, offset_y, cell_size):
             pygame.draw.rect(screen, cell_display_color, rect, border_radius=8)
             pygame.draw.rect(screen, config.DARK_NAVY, rect, 2, border_radius=8)
 
-            # Rysowanie zawartości komórki
             if cell_obj.revealed:
                 if cell_obj.has_mine:
                     center = rect.center
@@ -72,7 +67,6 @@ def draw_game_board(screen, board, cheat_on, offset_x, offset_y, cell_size):
 
 
 def draw_ingame_buttons(screen, reset_button_rect, exit_button_rect):
-    """Rysuje przyciski 'Reset' i 'Wyjście' w trakcie gry."""
     mouse_pos = pygame.mouse.get_pos()
 
     try:
@@ -86,7 +80,6 @@ def draw_ingame_buttons(screen, reset_button_rect, exit_button_rect):
     }
 
     for text, rect in buttons_to_draw.items():
-        # Efekt hover
         if rect.collidepoint(mouse_pos):
             button_color = config.BUTTON_HOVER_COLOR
         else:

@@ -1,4 +1,3 @@
-# game_manager.py
 import pygame
 import sys
 import time
@@ -41,7 +40,6 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
     game_clock = pygame.time.Clock()
     game_board, game_start_time, current_elapsed_time, cheat_active, game_is_lost, game_is_won, first_click_made = [None] * 7
 
-    # Definicja przycisków
     button_width, button_height = 150, 50
     exit_button_rect = pygame.Rect(game_scr_width - button_width - config.MIN_MARGIN, config.MIN_MARGIN, button_width,
                                    button_height)
@@ -71,16 +69,15 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
                 sys.exit()
 
             if evt.type == pygame.MOUSEBUTTONDOWN:
-                # Sprawdzenie kliknięcia przycisków
                 if reset_button_rect.collidepoint(evt.pos):
                     assets.play_click_sound()
                     reset_game_state()
-                    continue  # Pomiń resztę logiki dla tego kliknięcia
+                    continue
 
                 if exit_button_rect.collidepoint(evt.pos):
                     assets.play_click_sound()
                     is_session_active = False
-                    continue  # Pomiń resztę logiki i wyjdź z pętli zdarzeń
+                    continue
 
                 if not game_is_lost and not game_is_won:
                     m_x, m_y = evt.pos
@@ -133,7 +130,6 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
         active_game_screen.fill(config.DARK_NAVY)
         drawing.draw_game_board(active_game_screen, game_board, cheat_active, offset_x, offset_y, new_cell_size)
 
-        # Rysowanie UI na wierzchu
         drawing.draw_ingame_buttons(active_game_screen, reset_button_rect, exit_button_rect)
         if not (game_is_lost or game_is_won):
             timer_surf = assets.FONT.render(f"Czas: {int(current_elapsed_time)}s", True, config.WHITE)
