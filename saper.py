@@ -1,239 +1,69 @@
-# game_ui.py
+# saper.py
 import pygame
-import pygame_menu
-import pygame_menu.locals
+import sys
 import config
-import scoreboard
-import time
-import math
+import assets
+import game_ui
+import game_manager
+
+_current_custom_settings = {
+    "size": config.INITIAL_CUSTOM_SIZE,
+    "mines": config.INITIAL_CUSTOM_MINES
+}
 
 
-def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
-    """Tworzy podmenu z suwakami i ostateczną, poprawną logiką walidacji."""
-    submenu_theme = pygame_menu.themes.THEME_DARK.copy()
-    submenu_theme.background_color = config.DARK_NAVY
-    submenu_theme.widget_font_color = config.WHITE
-    submenu_theme.selection_color = config.CYAN
-    submenu_theme.title_font_color = config.ELECTRIC_BLUE
+def update_global_custom_setting(setting_key, new_value_str_or_int):
+    """
+    Uproszczona funkcja - tylko aktualizuje wartość w słowniku.
+    Cała logika walidacji jest teraz w UI.
+    """
+    global _current_custom_settings
+    try:
+        value = int(new_value_str_or_int)
+        _current_custom_settings[setting_key] = value
+    except (ValueError, TypeError):
+        # Ignoruj błędne wartości, które nie są liczbami
+        pass
 
-    submenu = pygame_menu.Menu(
-        "Tryb Niestandardowy",
-        parent_surface.get_width(),
-        parent_surface.get_height(),
-        theme=submenu_theme
+
+def get_global_custom_setting(setting_key):
+    return _current_custom_settings[setting_key]
+
+
+def initiate_game_level(selected_level_name):
+    original_menu_screen_dimensions = (config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
+
+    # Walidacja jest teraz w UI, więc przekazujemy wartości bezpośrednio
+    size = _current_custom_settings["size"]
+    mines = _current_custom_settings["mines"]
+
+    game_manager.run_game_session(
+        selected_level_name,
+        size,
+        mines,
+        original_menu_screen_dimensions
     )
 
-    submenu.add.label("Ustawienia Niestandardowe", font_size=40, margin=(0, 20))
-    submenu.add.vertical_margin(30)
 
-    # --- OSTATECZNA POPRAWIONA LOGIKA WALIDACJI ---
-    def validate_settings_and_update_ui():
-        """Sprawdza, czy ustawienia są poprawne i aktualizuje UI."""
-        size = get_custom_setting_fn("size")
-        mines = get_custom_setting_fn("mines")
-        max_mines = (size * size) - 1
+def main():
+    pygame.init()
+    _ = assets.FONT
 
-        validation_label = submenu.get_widget("validation_label")
-        start_button = submenu.get_widget("start_button")
+    main_display_surface = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
+    pygame.display.set_caption("Saper – Wersja UI")
 
-        if mines > max_mines:
-            validation_label.set_title(f"Za dużo min! (maks. dla tej planszy: {max_mines})")
-            validation_label.update_font({'color': config.RED_ACCENT})
-            start_button.readonly = True
-        else:
-            validation_label.set_title("")
-            validation_label.update_font({'color': config.WHITE})
-            start_button.readonly = False
-
-    def on_size_change(value):
-        update_custom_setting_fn("size", value)
-        validate_settings_and_update_ui()
-
-    def on_mines_change(value):
-        update_custom_setting_fn("mines", value)
-        validate_settings_and_update_ui()
-
-    # --- KONIEC OSTATECZNEJ LOGIKI ---
-
-    submenu.add.range_slider(
-        "Rozmiar planszy",
-        default=get_custom_setting_fn("size"),
-        range_values=(config.MIN_BOARD_SIZE, config.MAX_BOARD_SIZE),
-        increment=1,
-        onchange=on_size_change,
-        value_format=lambda x: str(int(x))
+    saper_main_menu = game_ui.create_main_menu(
+        main_display_surface,
+        initiate_game_level,
+        get_global_custom_setting,
+        update_global_custom_setting
     )
 
-    submenu.add.range_slider(
-        "Liczba min",
-        default=get_custom_setting_fn("mines"),
-        range_values=(config.MIN_MINES_CUSTOM, 600),
-        increment=1,
-        onchange=on_mines_change,
-        value_format=lambda x: str(int(x))
-    )
+    saper_main_menu.mainloop(main_display_surface)
 
-    submenu.add.label("", label_id="validation_label", font_size=24, margin=(0, 20))
-    submenu.add.button("Rozpocznij", lambda: start_game_fn("Niestandardowy"), button_id="start_button", margin=(0, 20),
-                       background_color=config.GREEN_ACCENT)
-    submenu.add.button("Wróć", pygame_menu.events.BACK)
-
-    validate_settings_and_update_ui()
-    return submenu
+    pygame.quit()
+    sys.exit()
 
 
-def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
-    menu_theme = pygame_menu.themes.THEME_DARK.copy()
-    menu_theme.background_color = config.DARK_NAVY
-    menu_theme.widget_font_color = config.WHITE
-    menu_theme.selection_color = config.CYAN
-    menu_theme.title_font_color = config.ELECTRIC_BLUE
-
-    # Tworzymy menu bez domyślnego tytułu, aby zrobić własny
-    menu = pygame_menu.Menu(
-        '',  # Pusty tytuł
-        surface.get_width(),
-        surface.get_height(),
-        theme=menu_theme
-    )
-
-    # --- NOWY, ANIMOWANY TYTUŁ ---
-    TITLE_BASE_SIZE = 120
-
-    # Dodajemy etykietę, która będzie naszym nowym tytułem
-    title_widget = menu.add.label(
-        "MineSat",
-        font_name=pygame_menu.font.FONT_BEBAS,
-        font_size=TITLE_BASE_SIZE,
-        font_color=config.ELECTRIC_BLUE
-    )
-    menu.add.vertical_margin(50)  # Odstęp pod tytułem
-
-    def animate_title(widget, menu_instance):
-        """Callback do animacji tytułu - efekt pulsowania."""
-        scale = 1.0 + 0.04 * math.sin(time.time() * 2.5)
-        new_size = int(TITLE_BASE_SIZE * scale)
-
-        # Aktualizuj rozmiar czcionki tylko jeśli się zmienił, aby uniknąć zbędnych operacji
-        current_font_size = widget.get_font_info()['size']
-        if current_font_size != new_size:
-            widget.update_font({'size': new_size})
-
-    # Ustawiamy funkcję zwrotną, która będzie wywoływana przed każdym narysowaniem widgetu
-    title_widget.set_pre_draw_callback(animate_title)
-    # --- KONIEC ANIMOWANEGO TYTUŁU ---
-
-    menu.add.label("Wybierz poziom", font_size=40, margin=(0, 20))
-    for level_name_key in config.DIFFICULTIES:
-        menu.add.button(level_name_key, lambda lvl=level_name_key: start_game_fn(lvl))
-
-    custom_sub_menu = create_custom_game_menu(
-        surface,
-        start_game_fn,
-        get_custom_setting_fn,
-        update_custom_setting_fn
-    )
-    menu.add.button("Tryb Niestandardowy", custom_sub_menu, margin=(0, 40))
-
-    static_scoreboard = create_scoreboard_display_menu(surface)
-    menu.add.button("Tablica wyników", static_scoreboard)
-
-    menu.add.button("Wyjście", pygame_menu.events.EXIT, background_color=config.RED_ACCENT)
-    return menu
-
-
-def create_scoreboard_display_menu(parent_surface):
-    submenu_theme = pygame_menu.themes.THEME_DARK.copy()
-    submenu_theme.background_color = config.DARK_NAVY
-    submenu_theme.widget_font_color = config.WHITE
-    submenu_theme.selection_color = config.CYAN
-    submenu_theme.title_font_color = config.ELECTRIC_BLUE
-
-    submenu = pygame_menu.Menu(
-        "Tablica wyników",
-        parent_surface.get_width(),
-        parent_surface.get_height(),
-        theme=submenu_theme
-    )
-    high_scores_data = scoreboard.load_high_scores()
-    levels_in_order = list(config.DIFFICULTIES.keys())
-    found_any_scores = False
-
-    for level_key in levels_in_order:
-        scores_list = high_scores_data.get(level_key, [])
-        is_defined_level = level_key in config.DIFFICULTIES.keys()
-
-        if scores_list:
-            found_any_scores = True
-            submenu.add.label(f"{level_key}:", font_size=36, margin=(0, 10))
-            for i, score_entry in enumerate(scores_list):
-                time = score_entry.get("time", 0.0)
-                name = score_entry.get("name", "Brak Im.")
-                submenu.add.label(f"{i + 1}. {time:.2f} sek ({name})", font_size=28)
-            submenu.add.vertical_margin(15)
-        elif is_defined_level:
-            submenu.add.label(f"{level_key}: Brak wyników", font_size=30, margin=(0, 10))
-            submenu.add.vertical_margin(15)
-
-    if not found_any_scores and not any(high_scores_data.get(lvl) for lvl in levels_in_order):
-        submenu.add.label("Brak zapisanych wyników.", font_size=30)
-
-    submenu.add.button("Wróć", pygame_menu.events.BACK)
-    return submenu
-
-
-def display_name_input_menu(game_surface, final_time):
-    menu_theme = pygame_menu.themes.THEME_DARK.copy()
-    menu_theme.background_color = config.DARK_NAVY
-    menu_theme.title_font_color = config.GREEN_ACCENT
-    menu_theme.widget_font_color = config.WHITE
-    menu_theme.selection_color = config.CYAN
-
-    input_menu = pygame_menu.Menu("Nowy rekord!", game_surface.get_width(), game_surface.get_height(), theme=menu_theme)
-
-    action_result = ["skip", None]
-
-    def set_player_action_and_disable(action, name=None):
-        nonlocal action_result
-        action_result = [action, name]
-        input_menu.disable()
-
-    input_menu.add.label(f"Czas: {final_time:.2f} sek", font_size=30)
-    input_menu.add.vertical_margin(20)
-
-    name_input = input_menu.add.text_input('Imię: ', maxchar=10, input_underline='_', font_size=30, default='Anon')
-    input_menu.add.vertical_margin(30)
-    input_menu.add.button("Zapisz wynik", lambda: set_player_action_and_disable("save", name_input.get_value()),
-                          background_color=config.GREEN_ACCENT)
-    input_menu.add.button("Nie zapisuj", lambda: set_player_action_and_disable("skip"))
-
-    input_menu.mainloop(game_surface)
-    return action_result
-
-
-def display_end_game_menu(game_surface, game_won, level_played, final_time):
-    title_text = "Wygrana!" if game_won else "Przegrana!"
-    menu_theme = pygame_menu.themes.THEME_DARK.copy()
-    menu_theme.background_color = config.DARK_NAVY
-    menu_theme.title_font_color = config.GREEN_ACCENT if game_won else config.RED_ACCENT
-    menu_theme.widget_font_color = config.WHITE
-    menu_theme.selection_color = config.CYAN
-
-    end_menu = pygame_menu.Menu(title_text, game_surface.get_width(), game_surface.get_height(), theme=menu_theme)
-
-    end_menu.add.label(f"Poziom: {level_played}", font_size=30)
-    end_menu.add.label(f"Czas: {final_time:.2f} sek", font_size=30)
-    end_menu.add.vertical_margin(30)
-
-    action_result = ["menu"]
-
-    def set_player_action(selected_action):
-        action_result[0] = selected_action
-        end_menu.disable()
-
-    end_menu.add.button("Restart", lambda: set_player_action("restart"), background_color=config.LIGHT_NAVY)
-    end_menu.add.button("Menu Główne", lambda: set_player_action("menu"))
-    end_menu.add.button("Wyjście", lambda: set_player_action("exit"), background_color=config.RED_ACCENT)
-
-    end_menu.mainloop(game_surface)
-    return action_result[0]
+if __name__ == "__main__":
+    main()

@@ -4,8 +4,6 @@ import pygame_menu
 import pygame_menu.locals
 import config
 import scoreboard
-import time
-import math
 
 
 def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
@@ -26,7 +24,6 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
     submenu.add.label("Ustawienia Niestandardowe", font_size=40, margin=(0, 20))
     submenu.add.vertical_margin(30)
 
-    # --- OSTATECZNA POPRAWIONA LOGIKA WALIDACJI ---
     def validate_settings_and_update_ui():
         """Sprawdza, czy ustawienia są poprawne i aktualizuje UI."""
         size = get_custom_setting_fn("size")
@@ -52,8 +49,6 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
     def on_mines_change(value):
         update_custom_setting_fn("mines", value)
         validate_settings_and_update_ui()
-
-    # --- KONIEC OSTATECZNEJ LOGIKI ---
 
     submenu.add.range_slider(
         "Rozmiar planszy",
@@ -97,31 +92,15 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
         theme=menu_theme
     )
 
-    # --- NOWY, ANIMOWANY TYTUŁ ---
-    TITLE_BASE_SIZE = 120
-
-    # Dodajemy etykietę, która będzie naszym nowym tytułem
-    title_widget = menu.add.label(
+    # --- NOWY, STATYCZNY TYTUŁ ---
+    menu.add.label(
         "MineSat",
-        font_name=pygame_menu.font.FONT_BEBAS,
-        font_size=TITLE_BASE_SIZE,
+        font_name=config.FONT_NAME,  # Użycie bezpiecznej czcionki z konfiguracji
+        font_size=120,
         font_color=config.ELECTRIC_BLUE
     )
     menu.add.vertical_margin(50)  # Odstęp pod tytułem
-
-    def animate_title(widget, menu_instance):
-        """Callback do animacji tytułu - efekt pulsowania."""
-        scale = 1.0 + 0.04 * math.sin(time.time() * 2.5)
-        new_size = int(TITLE_BASE_SIZE * scale)
-
-        # Aktualizuj rozmiar czcionki tylko jeśli się zmienił, aby uniknąć zbędnych operacji
-        current_font_size = widget.get_font_info()['size']
-        if current_font_size != new_size:
-            widget.update_font({'size': new_size})
-
-    # Ustawiamy funkcję zwrotną, która będzie wywoływana przed każdym narysowaniem widgetu
-    title_widget.set_pre_draw_callback(animate_title)
-    # --- KONIEC ANIMOWANEGO TYTUŁU ---
+    # --- KONIEC NOWEGO TYTUŁU ---
 
     menu.add.label("Wybierz poziom", font_size=40, margin=(0, 20))
     for level_name_key in config.DIFFICULTIES:
