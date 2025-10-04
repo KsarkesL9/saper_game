@@ -24,7 +24,10 @@ def get_global_custom_setting(setting_key):
     return _current_custom_settings[setting_key]
 
 
-def initiate_game_level(selected_level_name):
+def initiate_game_level(selected_level_name, menu):
+    # Wyłącz menu przed rozpoczęciem gry
+    menu.disable()
+
     original_menu_screen_dimensions = (config.SCREEN_WIDTH, config.SCREEN_HEIGHT)
 
     size = _current_custom_settings["size"]
@@ -37,6 +40,9 @@ def initiate_game_level(selected_level_name):
         original_menu_screen_dimensions
     )
 
+    # Włącz menu ponownie po zakończeniu sesji gry
+    menu.enable()
+
 
 def main():
     pygame.init()
@@ -47,7 +53,8 @@ def main():
 
     saper_main_menu = game_ui.create_main_menu(
         main_display_surface,
-        initiate_game_level,
+        # Przekaż funkcję lambda, która wywoła initiate_game_level z instancją menu
+        lambda level: initiate_game_level(level, saper_main_menu),
         get_global_custom_setting,
         update_global_custom_setting
     )

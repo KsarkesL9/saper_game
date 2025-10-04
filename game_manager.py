@@ -154,10 +154,9 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
                 save_action, player_name = game_ui.display_name_input_menu(active_game_screen, current_elapsed_time)
                 if save_action == "save":
                     scoreboard.save_player_score(current_level_name, current_elapsed_time, player_name)
-                    player_choice = game_ui.display_end_game_menu(active_game_screen, game_is_won, current_level_name,
-                                                                  current_elapsed_time)
-                else:
-                    player_choice = "menu"
+
+                player_choice = game_ui.display_end_game_menu(active_game_screen, game_is_won, current_level_name,
+                                                              current_elapsed_time)
             else:
                 player_choice = game_ui.display_end_game_menu(active_game_screen, game_is_won, current_level_name,
                                                               current_elapsed_time)
@@ -167,8 +166,7 @@ def run_game_session(level_name_selected, cust_size, cust_mines, orig_screen_dim
             elif player_choice == "menu":
                 is_session_active = False
             elif player_choice == "exit":
-                pygame.quit()
-                sys.exit()
+                is_session_active = False  # ZMIANA: Zamiast zamykać grę, wraca do menu
 
     pygame.display.set_mode(orig_screen_dims)
     pygame.display.set_caption("Saper – Wersja UI")

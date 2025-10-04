@@ -53,7 +53,7 @@ def _menu_bgfun(surface):
 def _neo_theme():
     theme = pygame_menu.themes.THEME_DARK.copy()
     theme.background_color = DARK_NAVY
-    theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_SIMPLE
+    theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_NONE  # Remove the top title bar
     theme.title_background_color = (30, 42, 64)
     theme.title_font = FONT_NAME
     theme.title_font_color = ELECTRIC
@@ -83,7 +83,8 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
         title="Tryb niestandardowy",
         width=parent_surface.get_width(),
         height=parent_surface.get_height(),
-        theme=theme
+        theme=theme,
+        onclose=pygame_menu.events.NONE  # Disable the top-right back arrow
     )
 
     start_btn_holder = [None]
@@ -98,10 +99,10 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
         if mines > max_mines or mines < 1:
             validation_label.set_title(f"Niepoprawna liczba min (1 - {max_mines}).")
             validation_label.update_font({'color': RED})
+            validation_label.show()
             if start_btn: start_btn.readonly = True
         else:
-            validation_label.set_title("")
-            validation_label.update_font({'color': WHITE})
+            validation_label.hide()
             if start_btn: start_btn.readonly = False
 
     def on_size_change(value):
@@ -131,12 +132,14 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
         value_format=lambda x: str(int(x)),
         onchange=on_mines_change
     )
-    submenu.add.label("", label_id="validation_label", font_size=24)
+    validation_widget = submenu.add.label("", label_id="validation_label", font_size=24)
+    validation_widget.hide() # Initially hidden
     submenu.add.vertical_margin(10)
+
 
     start_button = submenu.add.button(
         "Start",
-        lambda: (start_game_fn("Niestandardowy"), submenu.disable()),
+        lambda: start_game_fn("Niestandardowy"),
         background_color=GREEN
     )
     start_btn_holder[0] = start_button
@@ -164,12 +167,15 @@ def create_scoreboard_display_menu(parent_surface):
 
     high_scores_data = scoreboard.load_high_scores()
 
-    table = submenu.add.table(table_id="scores_table", font_size=28)
-    table.default_cell_padding = 10
-    table.default_row_background_color = (38, 50, 78)
-
     def render_table_for_level(level_name):
-        table.clear()
+        # Find and remove the old table if it exists
+        if submenu.get_widget("scores_table"):
+            submenu.remove_widget("scores_table")
+
+        table = submenu.add.table(table_id="scores_table", font_size=28)
+        table.default_cell_padding = 10
+        table.default_row_background_color = (38, 50, 78)
+
         header = table.add_row(["#", "Imię", "Czas [s]"], cell_align=pygame_menu.locals.ALIGN_CENTER, cell_font_size=30)
         header.background_color = (50, 65, 95)
 
@@ -215,15 +221,14 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
     )
 
     menu.add.label("MineSat Neo", font_name=FONT_NAME, font_size=96, font_color=ELECTRIC)
-    menu.add.vertical_margin(10)
-    menu.add.label("Nowocześniejszy interfejs • neon + szkło", font_size=28, font_color=WHITE)
     menu.add.vertical_margin(30)
 
     levels = list(C("DIFFICULTIES", {}).keys())
     if not levels:
         levels = ["Łatwy", "Średni", "Trudny", "Ekspert"]
     for lvl in levels:
-        menu.add.button(lvl, lambda l=lvl: (start_game_fn(l), menu.disable()))
+        # ZMIANA: Akcja przycisku po prostu wywołuje przekazaną funkcję
+        menu.add.button(lvl, lambda l=lvl: start_game_fn(l))
 
     menu.add.vertical_margin(20)
     custom_submenu = create_custom_game_menu(surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn)
