@@ -214,13 +214,13 @@ def create_scoreboard_display_menu(parent_surface):
 def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
     theme = _neo_theme()
     menu = pygame_menu.Menu(
-        title="MineSat Neo",
+        title="MineSat",
         width=surface.get_width(),
         height=surface.get_height(),
         theme=theme,
     )
 
-    menu.add.label("MineSat Neo", font_name=FONT_NAME, font_size=96, font_color=ELECTRIC)
+    menu.add.label("MineSat", font_name=FONT_NAME, font_size=96, font_color=ELECTRIC)
     menu.add.vertical_margin(30)
 
     levels = list(C("DIFFICULTIES", {}).keys())
