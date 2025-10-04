@@ -4,7 +4,6 @@ import pygame_menu.locals
 import config
 import scoreboard
 
-# ------------- helpers (safe defaults) -------------
 def C(name, default):
     return getattr(config, name, default)
 
@@ -49,11 +48,10 @@ def _menu_bgfun(surface):
     _glass_panel(surface, pygame.Rect(20, 16, surface.get_width()-40, 56),
                  border_color=(200,220,255), alpha=18, radius=16)
 
-# unified theme
 def _neo_theme():
     theme = pygame_menu.themes.THEME_DARK.copy()
     theme.background_color = DARK_NAVY
-    theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_NONE  # Remove the top title bar
+    theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_NONE
     theme.title_background_color = (30, 42, 64)
     theme.title_font = FONT_NAME
     theme.title_font_color = ELECTRIC
@@ -76,7 +74,6 @@ def _neo_theme():
     theme.widget_border_width = 1
     return theme
 
-# ------------- Submenus -------------
 def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
     theme = _neo_theme()
     submenu = pygame_menu.Menu(
@@ -84,7 +81,7 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
         width=parent_surface.get_width(),
         height=parent_surface.get_height(),
         theme=theme,
-        onclose=pygame_menu.events.NONE  # Disable the top-right back arrow
+        onclose=pygame_menu.events.NONE
     )
 
     start_btn_holder = [None]
@@ -133,7 +130,7 @@ def create_custom_game_menu(parent_surface, start_game_fn, get_custom_setting_fn
         onchange=on_mines_change
     )
     validation_widget = submenu.add.label("", label_id="validation_label", font_size=24)
-    validation_widget.hide() # Initially hidden
+    validation_widget.hide()
     submenu.add.vertical_margin(10)
 
 
@@ -168,7 +165,6 @@ def create_scoreboard_display_menu(parent_surface):
     high_scores_data = scoreboard.load_high_scores()
 
     def render_table_for_level(level_name):
-        # Find and remove the old table if it exists
         if submenu.get_widget("scores_table"):
             submenu.remove_widget("scores_table")
 
@@ -199,7 +195,7 @@ def create_scoreboard_display_menu(parent_surface):
     )
     submenu.add.vertical_margin(20)
 
-    render_table_for_level(levels[0]) # Initial table render
+    render_table_for_level(levels[0])
 
     submenu.add.vertical_margin(20)
     submenu.add.button("Wróć", pygame_menu.events.BACK)
@@ -210,7 +206,6 @@ def create_scoreboard_display_menu(parent_surface):
     return submenu
 
 
-# ------------- Main menu -------------
 def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custom_setting_fn):
     theme = _neo_theme()
     menu = pygame_menu.Menu(
@@ -227,7 +222,6 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
     if not levels:
         levels = ["Łatwy", "Średni", "Trudny", "Ekspert"]
     for lvl in levels:
-        # ZMIANA: Akcja przycisku po prostu wywołuje przekazaną funkcję
         menu.add.button(lvl, lambda l=lvl: start_game_fn(l))
 
     menu.add.vertical_margin(20)
@@ -242,7 +236,6 @@ def create_main_menu(surface, start_game_fn, get_custom_setting_fn, update_custo
                      pygame_menu.Menu.mainloop(menu, surface, bgfun=lambda: _menu_bgfun(surface)))
     return menu
 
-# ------------- Record name input -------------
 def display_name_input_menu(game_surface, final_time):
     theme = _neo_theme()
     theme.title_font_color = GREEN
@@ -271,7 +264,6 @@ def display_name_input_menu(game_surface, final_time):
     pygame_menu.Menu.mainloop(input_menu, game_surface, bgfun=lambda: _menu_bgfun(game_surface))
     return action_result[0], action_result[1]
 
-# ------------- End game menu -------------
 def display_end_game_menu(game_surface, is_won, current_level_name, final_time):
     theme = _neo_theme()
     theme.title_font_color = GREEN if is_won else RED

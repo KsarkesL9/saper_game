@@ -10,12 +10,10 @@ def _init_structure():
     return {lvl: [] for lvl in RANKED_LEVELS}
 
 def load_high_scores():
-    """Return dict {level: [ { "time": float, "name": str }, ... ]}"""
     path = getattr(config, "SCORE_FILE", "highscores.json")
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            # ensure structure
             if not isinstance(data, dict):
                 return _init_structure()
             for lvl in RANKED_LEVELS:
@@ -26,11 +24,9 @@ def load_high_scores():
         return _init_structure()
 
 def save_player_score(level_name, time_seconds, player_name):
-    """Append a score; keep best 5 per level by time."""
     if not RANKED_LEVELS:
         return
     if level_name not in RANKED_LEVELS:
-        # ignore custom or unknown levels
         return
     path = getattr(config, "SCORE_FILE", "highscores.json")
     scores = load_high_scores()
@@ -45,7 +41,6 @@ def save_player_score(level_name, time_seconds, player_name):
             json.dump(scores, f, ensure_ascii=False, indent=4)
         os.replace(tmp_path, path)
     except OSError:
-        # fallback best-effort
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(scores, f, ensure_ascii=False, indent=4)
